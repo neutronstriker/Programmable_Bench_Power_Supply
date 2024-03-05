@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Atmel Studio Solution File, Format Version 11.00
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "neo_arduino_core_101", "..\..\..\..\..\AVR\neo_arduino_core_101\neo_arduino_core_101\neo_arduino_core_101.cppproj", "{4C2FB154-9659-4305-833C-88CE451D759B}"
+EndProject
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "DCDC_CONTROLLER", "DCDC_CONTROLLER\DCDC_CONTROLLER.cppproj", "{7D06A3B8-74A0-40BC-8FA4-1DCA0E192ECB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4C2FB154-9659-4305-833C-88CE451D759B} = {4C2FB154-9659-4305-833C-88CE451D759B}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4C2FB154-9659-4305-833C-88CE451D759B}.Debug|AVR.ActiveCfg = Debug|AVR
+		{4C2FB154-9659-4305-833C-88CE451D759B}.Debug|AVR.Build.0 = Debug|AVR
+		{4C2FB154-9659-4305-833C-88CE451D759B}.Release|AVR.ActiveCfg = Release|AVR
+		{4C2FB154-9659-4305-833C-88CE451D759B}.Release|AVR.Build.0 = Release|AVR
+		{7D06A3B8-74A0-40BC-8FA4-1DCA0E192ECB}.Debug|AVR.ActiveCfg = Debug|AVR
+		{7D06A3B8-74A0-40BC-8FA4-1DCA0E192ECB}.Debug|AVR.Build.0 = Debug|AVR
+		{7D06A3B8-74A0-40BC-8FA4-1DCA0E192ECB}.Release|AVR.ActiveCfg = Release|AVR
+		{7D06A3B8-74A0-40BC-8FA4-1DCA0E192ECB}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

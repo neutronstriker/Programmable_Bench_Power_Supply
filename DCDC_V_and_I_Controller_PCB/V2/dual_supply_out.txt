@@ -1,0 +1,2 @@
+We have not considered the Benchtop PSU design for Negative rail or Dual Rail generation.
+Decided that we will have instead an external adapter that will generate the dual rails just like the adapter we have, otherwise we will just make things unnecessarily complicated.

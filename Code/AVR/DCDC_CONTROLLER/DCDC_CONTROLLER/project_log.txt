@@ -1,0 +1,4 @@
+Date: 02-July-2019:
+Created a project by modifying the "neo_core_101_proj_template"
+Created the INA260 lib by modifying the existing INA226 lib
+Did a basic test of INA260 on the board and found it to be working fine.

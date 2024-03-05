@@ -1,0 +1,222 @@
+Date: 02-July-2019:
+Created a project by modifying the "neo_core_101_proj_template"
+Created the INA260 lib by modifying the existing INA226 lib
+Did a basic test of INA260 on the board and found it to be working fine.
+
+Date: 07-Jul-2019:
+Target is to get a voltage setting precision of 0.01V and current limit precision of 0.01A
+
+Read more about voltage setting accuracy findings in setVoltage(), another thing to do is connect a resistive load to draw atleast 200 to 500mA and
+then do the voltage shmoo, once it is done find the inverse function for error tuning and apply it to get the correct voltages. Or atleast at crucial
+points with high error you can compensate in software using setVoltage()
+
+DAC8571/DAC121c085 or using each TPL0102-100 with a OPA4912 to make a 16bit DAC out of each half or using a PCA9555 or similar I2C IO expander to build a R-2R DAC are
+three different solutions for solving this problem.
+
+
+Date: 21-july-2019:
+Current Limit function is complete, it has the same in accuracy quirks as the voltage set fucntion but here at lower side the accuracy will be higher than what we can 
+achieve for Voltage limit as for lower current limit, we need smaller DAC voltages and we are accurate in that zone.
+Also I did a change in the setVoltage command which was considerably reduced the setVoltage error throughout the range.
+Changed "uint16_t vTrimRequired = 1335-((17UL*voltage_mV)/250UL);" to  "float vTrimRequired = 1335.0f-((float)(17UL*voltage_mV)/250UL);", check testOut_11.xlsx
+And added			if (pot0Val == 0)
+					{
+						pot0Val = 1;
+					}
+
+
+Date: 22-july-2019:
+The regulator on the Controller board is heating up because the current draw throuhg it is very high around 100mA and this is because of the LCD backlight and the bluetooth
+module now added to the project. We will need a staggered Regulator mechanism to protect them from heating-up. Use a DCDC buck converter to switch the input supply to 7V or 
+9V from input supply then use that to power the LDO on the control board. We have to also figure out a way to reduce the GND path between CONTROLLER and VR.
+Make sure that the current through the gnd net of controller board is as low as possible, because that is what will create a voltage drop. So for this if necessary use separate
+supplies for rest of the circuits and a separate one (or direct connection as current will be very less) for controller board. If required to connect gnd reference between the controller
+and Arduino for communication use a resistor between the controller gnd and arduino gnd, so that gnd return current from arduino will not use this path.
+
+Date: 25-july-2019:
+For now a sketchy approach of implementing the rotary encoder knobs has been completed for voltage control only.
+I tried the class method but didn't work due to a lot of various issues and mostly my C/CPP coding skills.
+There are some bugs in the current implementation, like double increments/decrements in single click, not sure how it works in all the other devices so smoothly(Eload and Audio_SW).
+[Same day as above]
+Found that the specific knob part used for voltage control was faulty and was producing more than 1 clicks sometimes.
+Also I could finally finish the Rotary_encoder class and integrated a lot of functions into it, so now the overall code is very cleaner and easily readable.
+It consumes around 1.5K of code space and 100bytes of RAM. Probably should try to reduce the RAM usage.
+
+
+Date: 26-July-2019:
+assembled the circuit and made a prototype 3d printed chassis and front panel.
+Pins from current_knob-sw:6
+			voltage_knob-sw:3
+			alert_n:2
+			relay:A3
+			A resistor needs to be connected across the output of the buck for stabilization of voltage setpoint
+
+
+Date: 27-july-2019:
+added a 1k resistor across output but found that when loading with atleast 100mA, we have very stable voltage output, even thought at some points it might be oscillating too much.
+need to check the gnd path current vs power path current for control board.
+One more thing that probably we can implement is after setting the proper internal static resistor load, and then shmoo temperature and find X vs Y transfer function, use the reverse 
+transfer function to set the voltage.
+
+Have enable Backlight permanently
+Have temporarily used Voltage_knob-sw for output toggling.
+
+Date: 29-july-2019:
+Used the Current Control knob temporarily for Back light toggling
+Changed Relay and Backlight Power-On default state to be OFF
+Added mechanism to wait toggling until we release the button for both back-light and relay
+added a mechanism to set voltage or set current limit only if the value has changed since last value.
+
+Date: 01-August-2019:
+I checked the current draw through the ground wire of the controller board to see if the ground noise could be offsetting the voltage control
+or creating extra noise. But I found that the GND pin current was within 10mA which is sum of the two gnd wires Input and Vtrim-reference.
+
+Then I tried adding a 0.1uF cap on VTRIM-GND pins to stabilize the voltage but I didn't find any difference.
+The other thing that I tried is adding a 120 ohm resistor to output of the DCDC directly and this reduced the noise however the Vset accuracy didn't improve any.
+Since the 120 ohm resistor was of 1/4W I removed it as it started heating up.
+
+Date: 02-Auguest-2019:
+I tried adding MCP4725 DAC to provide Vtrim and source was 5V supply of Control board.
+Output was scaled to 1/4 using 30k/10k resistors and then buffered using OPA2192. It seems the OPA2192 was slightly damaged as I could see a 84mV on its output
+pin in voltage follower mode when I connected its Vin+ to GND. (This has been a recurring observation with other OP-amps which received higher thermal/Voltage
+stress during sometime of their life. So it is better to refrain from overheating Analog chips as they can show latent or partial defects.)
+I saw that at lower voltages like 1.4 or 3.0 the setpoint accuracy hold was very good, however I had to connect a 120 ohm resistor across the output of the Buck
+converter. But at higher voltages the set-point was slightly offset and this offset was increasing with increase in Voltage setpoint value.
+Probably we can measure the output and then generate a reverse transfer function to clear this. Also it is better to measure the voltage at higher voltages once
+using multimeter also as I was only monitoring the voltage using INA260 output.
+
+There was quite some noise and I think that noise can be reduced by two things:
+	1. For MCP4725 or its TI equivalent use DAC reference as a precision source.
+	2. Connecting a resistive load of atleast around 30mA.
+
+I already tried connecting controller supply input to DCDC MPS buck module, there was not any noticeable difference in noise.
+
+Date: 04-Aug-2019:
+Added a 20W 100 ohm resistor made using 4 5W 100 ohm resistos in series-parallel combination and use that as a load across the power module, which helps in stabilizing the voltage 
+regulator and also reducing noise. However it was heating up a lot, but found that if we use the 5V blower fan that I bought from robu.in, the temperature was in control and quite well
+maintainable. We will need a mechanism to turn on and off FAN based temperature and have to add a few NTC thermistors to monitor the load resistor and as well as other critical component
+or heatsink temperatures.
+
+Date: 05-Aug-2019:
+Used a reverse transfer function in set_voltage to improve the setVoltage to actual_voltage_set correlation.
+Tried a bunch of reverse transfer functions, like full range single trf, then tried to correlate the error after applying trf and got another 2nd level trf and then tried piece wise range trf 1, until 1.4V to 10V and then 
+after analyzing all I decided to use a single one, since anyway when the voltage is lower then the granularity decreases as we need to apply higher voltage and where we have lower granularity.
+For most you can find V-shmoo.csv/xlsx files in the same folder as project.
+I have now enabled hardware averaging of 16 in INA260 configuration, it has considerably reduced noise on the display, however will not affect the actual output, but that is something that 
+the DUT needs to take care for a cleaner input.
+
+Added a offset calibration capability in INA260.
+
+
+Date: 06-Aug-2019:
+Tried the 10mV steps V-shmmoo, got results which show that the V-shmoo at lower voltages has only resolution of 8bit DAC
+and then tried Output voltage inversion for the V-trim_DAC output and messed up the circuit, forgot that we will need buffer
+after final Vtrim_DAC output and loaded the DPOT and then when it didn't work as expected reverted all changes.
+
+
+Date: 08-Aug-2019:
+Now I have integrated the 12Bit I2C DAC using 5V input supply as its input Vref and then used 3k/1k to scale the output to 1/4th or close to 1250.
+	It seems we have some inaccuracies in the set-point calculation using MCP4725 or the DAC is non-linear (has a bad INL). After some analysis I have understood
+	a single linear reverse transfer function will not work to correct the inaccuracies. We will need multiple piece wise linear functions for that. I have also tried
+	to fit it using polynomial 2nd order model even that didn't give a very good fit.
+	
+	However now I am able to achieve an error within 20mV for lower voltages and max 40mV through out the range.
+	In between I saw some anomally on the display when the voltage dropped suddenly from 17.4V setpoint
+	to 17.04V. THen I saw something weird happening and I saw all the points being voltage being lower than setvalue by around 50mV. And suddenly dropping to 0 in between.
+	Then I found that the wire coming out from power module V+out was loose, it became loose as the Resistors were hot and its metal expanded and pushed the single wire 
+	outside.
+
+Date: 09-Aug-2019:
+After replacing TPL0102 with MCP4725 now we can reach even 1.3V, so I have changed the lower limits to 1300mV.
+I tried using NTC 10K thermistor for temperature based FAN speed control, but the exact topology has not been decided yet. It seems that our resistance range of interest would
+be when the thermistor is below 4k or 3k. I have used thermal paste for better conductivity but since it is a non-hardening paste, I will have to use something to hold it there.
+M-SEAL around it be a good idea. Any other plastic or rubber based glue could be dangerous if the resistor heats up and burns.
+I found that the Nokia LCD display has suddenly started acting crazy. It could be because we are driving it from arduino at 5V directly without any series resistors.
+It suddenly becomes blurry and text becomes invisible.
+It was howeve visible at various other angles, which probably means the bias voltage for the polariser was not proper somehow.
+I removed and reconnected the cable and then power-cycled the system and now it is back again.
+
+
+Date: 10-Aug-2019:
+Implemented SerialCmd interpreter and also kept it in separate file as a module so that code is cleaner and easier to read and understand.
+Moved the PowerModule related set point functions, transfer functions and DAC control functions to different file so that some vars can be shared between files
+Added Enable and Disable methods for RotaryEncoder which helps to lock-unlock the front panel when required.
+
+Date: 12-Aug-2019:
+Found a weird issue- if Current limit is set to below 30mA (around 10mA), then voltage comes down to around 5V, even though your setpoint is higher.
+Could be because of noise at that higher voltage the current sensor is behaving that way.
+
+Date: 13-Aug-2019:
+Moved some small functions which were part of neo_Core main.cpp to neo_core_aux.cpp module, so that we can separate that from program logic.
+Added some serialCmd functions like echo, backspace, case and reset.
+
+Date: 15-Aug-2019:
+Changed "iout?" serialCmd to "ibus?"
+It is observed that the current limit doesn't hold good for loads with switching circuits, like motors or DCDC converters. It seems to clamp at around twice of setpoint value.
+The reason could be either that INA250A3 doesn't have enough bandwidth and high frequency content is attenuated or it also could be that the regulator XL4016 is unable to respond
+to very fast transients. 1N4148 has a reverse recovery time of around 4ns so that wouldn't be the limiting factor here.
+Removed direct INA260 method call from readSerialCmd() and added the busVoltage, shuntCurrent and busPower vars which are being polled in main_system_loop() 
+
+
+Date: 17-Aug-2019:
+Added a switch to the front panel, it is a tactile with 3d printed enclosure and a LED.
+connected this switch to A2 pin and modified the code to toggle relay using this pin.
+
+Date: 25-Aug-2019
+TODO:
+Try and findout the display update rate with GPIO based LCD connection instead of HW-SPI, if it works instead of using SCHMITT-TRIGGER + NTC based FAN control we can
+use ADC + PWM fan control, because we can release two pins MISO and CE pin from the Arduino to be used for other purposes.
+I have decided to use a regulator + EN control for now. Later we can use a DAC/PWM_DAC to change the offset of the LDO.
+
+The LCD is now running in SW-SPI mode instead of HW-SPI so Pin 12 and PIn 10 are now free to use.
+I have now made a circuit using a LDO LP38693-ADJ to generate 4V(1.25V ref, 2.2k between OUT and ADJ and 1k between ADJ and GND) from DCDC aux buck output of 7.4V and then I have connected its enabled PIN to pin 10.
+The NTC thermistor is now connected in a voltage divider mode to A6 pin. The top side is 10k-NTC thermistor and bottom side is 4.4K resistor and supply is connected
+to 7.4V DCDC aux output. We can now monitor the divider voltage and turn the fan on or off appropriately.
+I have added a small piece of code in the serial interpreter to change the Fan enable pin to PWM mode and write a PWM val to it.
+
+Tested the analogWrite function with default freq and gave high-pitch sound and wasn't much effective, but after changing the freq divider to 256 and 1024 the high pitch noise was reduced.
+We can probably try connecting the PWM pin with RC filter to the resistor between ADJ and GND by disconnecting the other end of resistor from GND and use the PWM as a DAC.
+
+I have added some code to monitor voltage across the NTC voltage divider using A6 pin in the serial interpreter. We will test it then decide what should be the thresholds for fan control.
+When Output was 18V the highest voltage that the divider went was 4.6V and after turning fan on at full speed the lowest we could reach was 3.6V.
+When the output was at 3.3V the highest voltage divider was at 2.6V without Fan on.
+
+
+Date: 26-Aug-2019:
+Changed the bottom fixed resistor value in NTC thermistor based voltage divider from 4.4K to 2.2K, it was done because, the divider output could reach 5V when the NTC
+reaches 2.12K and it is very much possible. So once the NTC goes below 2.12K the voltage will rise to 5V and beyond and could damage the GPIO/AIN pin/pad.
+
+The voltage regulator circuit was also modified to output 5.3V by default. By putting a 2.2k parallel to bottom side 1K in the Voltage setting resistors.
+The enable of the Regulator is connected to VIN directly and the GPIO/PWM pin is connected to the voltage setting bottom resistors to form a DAC and a 0.1uF Cap
+is placed between the PWM pin and GND.
+After testing found that if we use pwm frequency divider 1 and pwm value between 0 to 160 we can control the VREG output voltage and there by the FAN Speed and noise.
+I have written a function to read the temperature using the NTC thermistor, but for now the Beta value is not proper and I think we will see higher temperature.
+Once we have the temperature gun to read the real temperature we can correlate and correct the beta value and do necessary equation correction.
+I have also added some function into PSU_Acquire_and_plot.py script to test the temperature and voltage correlation and effect of FAN speed.
+We need to write a mapping function from temperature to fanSpeed and first just write a function which encompasses all modes GPIO and PWM with PWM FREQ
+to change fanSpeed as percentage.
+
+
+Date: 29-Aug-2019:
+Cross verified the thermistor output with the IR temperature gun, that I had purchased and found that temperature gun was measuring around 3-5C lower temperature around 40C
+and that means we can rely on the calculated thermistor temp.
+Implemented some functions to set fanSpeed automatically and made temperature and fan control as a separate module.
+But we need to fix the fan Speed control algorithm, righ now it is just a linear mapping between fan-speed and temperature. It makes a lot of noise when it is at the lower
+end. I think we can fix this by adding some tolerance range for response.
+Added hysteresis control for the fan, by having two different limits one for ON and other for OFF and then added another hysteresis in the temperature sensitivity response
+for temperature to fan speed mapping block
+
+Date: 01-Sep-2019:
+Added over temperature protection logic in the code and changed the range of OVER-temperature limit for fan control from 60 to 80
+added over current protection logic using INA260 alert, this is a temporary arrangement to protect the PSU from short-circuit events which can cause currents
+go higher than the DCDC and the whole path power path limits. The weakest link is the DCDC itself, which has a limit of 8A.
+updated the backspace detection logic, which is now configurable to either use 127 or 8 as the backspace key
+
+Date: 07-Sep-2019:
+Observed that when just using the 0.7A 12V fan with the PSU, as soon as I turn the output switch on the Over current limit protection is triggered and output is disabled.
+So either we need some kind of low pass filter on the ALERT_N pin with a timing calculated to reach VIH/VIL of the triggerring device and the minimum time the over current 
+condition can be sustained without actually damaged any part of the POWER path. Or else we will need some kind rise time control circuit between output pins and DCDC output.
+For now the OVER_CURRENT protection has been disabled.
+
+
+On another point we need some circuit+sw to turn the whole supply OFF, a kill switch on the enclosure.

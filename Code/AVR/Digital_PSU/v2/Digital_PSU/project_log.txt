@@ -1,0 +1,43 @@
+Date: 02-July-2019:
+Created a project by modifying the "neo_core_101_proj_template"
+Created the INA260 lib by modifying the existing INA226 lib
+Did a basic test of INA260 on the board and found it to be working fine.
+
+Date: 07-Jul-2019:
+Target is to get a voltage setting precision of 0.01V and current limit precision of 0.01A
+
+Read more about voltage setting accuracy findings in setVoltage(), another thing to do is connect a resistive load to draw atleast 200 to 500mA and
+then do the voltage shmoo, once it is done find the inverse function for error tuning and apply it to get the correct voltages. Or atleast at crucial
+points with high error you can compensate in software using setVoltage()
+
+DAC8571/DAC121c085 or using each TPL0102-100 with a OPA4912 to make a 16bit DAC out of each half or using a PCA9555 or similar I2C IO expander to build a R-2R DAC are
+three different solutions for solving this problem.
+
+
+Date: 21-july-2019:
+Current Limit function is complete, it has the same in accuracy quirks as the voltage set fucntion but here at lower side the accuracy will be higher than what we can 
+achieve for Voltage limit as for lower current limit, we need smaller voltages and we are accurate in that zone.
+Also I did a change in the setVoltage command which was considerably reduced the setVoltage error throughout the range.
+Changed "uint16_t vTrimRequired = 1335-((17UL*voltage_mV)/250UL);" to  "float vTrimRequired = 1335.0f-((float)(17UL*voltage_mV)/250UL);"
+And added			if (pot0Val == 0)
+					{
+						pot0Val = 1;
+					}
+
+
+Date: 22-july-2019:
+The regulator on the Controller board is heating up because the current draw throuhg it is very high around 100mA and this is because of the LCD backlight and the bluetooth
+module now added to the project. We will need a staggered Regulator mechanism to protect them from heating-up. Use a DCDC buck converter to switch the input supply to 7V or 
+9V from input supply then use that to power the LDO on the control board. We have to also figure out a way to reduce the GND path between CONTROLLER and VR.
+Make sure that the current through the gnd net of controller board is as low as possible, because that is what will create a voltage drop. So for this if necessary use separate
+supplies for rest of the circuits and a separate one (or direct connection as current will be very less) for controller board. If required to connect gnd reference between the controller
+and Arduino for communication use a resistor between the controller gnd and arduino gnd, so that gnd return current from arduino will not use this path.
+
+Date: 25-july-2019:
+For now a sketchy approach of implementing the rotary encoder knobs has been completed for voltage control only.
+I tried the class method but didn't work due to a lot of various issues and mostly my C/CPP coding skills.
+There are some bugs in the current implementation, like double increments/decrements in single click, not sure how it works in all the other devices so smoothly(Eload and Audio_SW).
+[Same day as above]
+Found that the specific knob part used for voltage control was faulty and was producing more than 1 clicks sometimes.
+Also I could finally finish the Rotary_encoder class and integrated a lot of functions into it, so now the overall code is very cleaner and easily readable.
+It consumes around 1.5K of code space and 100bytes of RAM. Probably should try to reduce the RAM usage.
